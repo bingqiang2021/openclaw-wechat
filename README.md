@@ -46,12 +46,19 @@ sk-cp-okxxxxx
 配置所需的环境变量：
 
 MODEL_NAME=生成图模型名称，默认值gemini-3-pro-image-preview
+
 FALLBACK_MODEL_NAME=生成图备用模型名称，默认值gemini-2.0-flash-exp-image-generation
+
 IMAGE_API_BASE_URL=生成图模型的baseUrl
+
 API_KEY=生成图模型的key
+
 WECHAT_APPID=要发布的微信公众号的appId
+
 WECHAT_APPSECRET=要发布的微信公众号secret
+
 WECHAT_AUTHOR=要发布的微信公众号名称
+
 
 ## 4 通知openclaw安装这个skill
 
