@@ -17,11 +17,11 @@ import json
 import requests
 from pathlib import Path
 
-# ============== 配置 ==============
+# ============== 配置（从环境变量读取，如果未设置则使用默认值）==============
 CONFIG = {
-    "appid": "wxc3e581101fc9040f",
-    "appsecret": "0a207d6e45491f34bd69452457301114",
-    "author": "AIGCLink",
+    "appid": os.getenv("WECHAT_APPID", "wxxxxx"),
+    "appsecret": os.getenv("WECHAT_APPSECRET", "0axxxx"),
+    "author": os.getenv("WECHAT_AUTHOR", "xxxx"),
 }
 
 # 样式配置
@@ -71,6 +71,7 @@ class ArticleParser:
         self.title = ""
         self.cover_image = ""
         self.content_lines = []    # 所有内容（包含引言标记）
+        self._in_quote = False     # 跟踪是否在引言块中
 
     def parse(self) -> bool:
         """解析 artical.md 文件"""
@@ -95,39 +96,63 @@ class ArticleParser:
                 i += 1
                 continue
 
-            # 解析【封面主图】标记 - 标记行不保留，但记录下一行图片路径
+            # 解析【封面主图】标记 - 自动使用 assets/cover.png，同时闭合引言
             if '【封面主图' in stripped and stripped.startswith('【') and '】' in stripped:
-                i += 1
-                # 查找下一个非空行的图片
-                while i < len(lines):
-                    next_line = lines[i].strip()
-                    if next_line:
-                        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', next_line)
-                        if img_match:
-                            self.cover_image = img_match.group(2)
-                            self.content_lines.append(lines[i])  # 图片保留在正文中
-                        else:
-                            self.content_lines.append(lines[i])
-                        i += 1
-                        break
+                # 如果在引言块中，先闭合引言
+                if self._in_quote:
+                    self.content_lines.append(self.QUOTE_END + "\n")
+                    self._in_quote = False
+                
+                # 自动设置封面路径为 assets/cover.png
+                cover_path = self.article_dir / "assets" / "cover.png"
+                if cover_path.exists():
+                    self.cover_image = "assets/cover.png"
+                else:
+                    # 向后兼容：如果下一行有图片语法，也支持
                     i += 1
+                    while i < len(lines):
+                        next_line = lines[i].strip()
+                        if next_line:
+                            img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', next_line)
+                            if img_match:
+                                self.cover_image = img_match.group(2)
+                                # 不再把封面图片加入正文
+                            i += 1
+                            break
+                        i += 1
+                    continue
+                
+                i += 1
+                # 跳过下一行如果是图片语法（向后兼容）
+                if i < len(lines):
+                    next_line = lines[i].strip()
+                    if re.match(r'!\[([^\]]*)\]\(([^)]+)\)', next_line):
+                        i += 1
                 continue
 
             # 解析【引言】标记 - 插入引言开始标记
             if stripped == '【引言】':
                 self.content_lines.append(self.QUOTE_START + "\n")
+                self._in_quote = True
                 i += 1
                 continue
 
             # 解析【正文】标记 - 插入引言结束标记
             if stripped == '【正文】':
-                self.content_lines.append(self.QUOTE_END + "\n")
+                if self._in_quote:
+                    self.content_lines.append(self.QUOTE_END + "\n")
+                    self._in_quote = False
                 i += 1
                 continue
 
             # 解析【标题1】【标题2】等标记 - 转换为内部标记，保留下一行标题文字
             title_match = re.match(r'^【标题(\d+)】$', stripped)
             if title_match:
+                # 如果在引言块中，先闭合引言
+                if self._in_quote:
+                    self.content_lines.append(self.QUOTE_END + "\n")
+                    self._in_quote = False
+                
                 title_num = title_match.group(1)
                 # 插入内部标记
                 self.content_lines.append(f"{self.TITLE_IMAGE_PREFIX}{title_num}__\n")
@@ -147,6 +172,11 @@ class ArticleParser:
             self.content_lines.append(line)
             i += 1
 
+        # 解析结束时，如果引言未闭合，自动闭合
+        if self._in_quote:
+            self.content_lines.append(self.QUOTE_END + "\n")
+            self._in_quote = False
+
         return True
 
     def get_content(self) -> str:
@@ -155,11 +185,18 @@ class ArticleParser:
 
     def get_cover_path(self) -> str:
         """获取封面图片完整路径"""
-        if not self.cover_image:
-            return ""
-        if self.cover_image.startswith('http'):
-            return self.cover_image
-        return str(self.article_dir / self.cover_image)
+        # 优先使用解析到的路径
+        if self.cover_image:
+            if self.cover_image.startswith('http'):
+                return self.cover_image
+            return str(self.article_dir / self.cover_image)
+        
+        # 自动检测 assets/cover.png
+        auto_cover = self.article_dir / "assets" / "cover.png"
+        if auto_cover.exists():
+            return str(auto_cover)
+        
+        return ""
 
 
 class WechatPublisher:
@@ -187,7 +224,7 @@ class WechatPublisher:
             if not self.parser.title:
                 return "错误: 未找到文章标题"
             print(f"      标题: {self.parser.title}")
-            print(f"      封面: {self.parser.cover_image or '未指定'}")
+            print(f"      封面: {self.parser.cover_image or '自动检测 assets/cover.png'}")
         except Exception as e:
             return f"错误: 解析文章失败 - {str(e)}"
 
@@ -198,7 +235,7 @@ class WechatPublisher:
         # 3. 上传封面
         cover_path = self.parser.get_cover_path()
         if not cover_path or not os.path.exists(cover_path):
-            return f"错误: 封面图片不存在 - {cover_path}"
+            return f"错误: 封面图片不存在 - {cover_path or 'assets/cover.png'}"
 
         thumb_media_id = self._upload_cover(cover_path)
         if not thumb_media_id:
@@ -653,3 +690,4 @@ if __name__ == '__main__':
     article_dir = sys.argv[1]
     result = publish_article(article_dir)
     print(result)
+
