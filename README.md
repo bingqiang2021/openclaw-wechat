@@ -116,6 +116,7 @@ WECHAT_AUTHOR：要发布的微信公众号名称
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/4EZlweZ8e13BZqxA/img/f86a8c0d-f4e8-44df-a89a-fa9fb925de51.png)
 
 
+
 ## 5 安装飞书渠道
 
 openclaw 默认不内置飞书 Channel，需要额外安装插件，社区已经有小伙伴实现并开源 项目地址： [https://github.com/m1heng/clawdbot-feishu](https://github.com/m1heng/clawdbot-feishu) 
@@ -126,11 +127,16 @@ openclaw 默认不内置飞书 Channel，需要额外安装插件，社区已�
 1、进入飞书应用中心  
 飞书开放平台：[https://open.feishu.cn/app?lang=zh-CN](https://open.feishu.cn/app?lang=zh-CN)
 
+<img width="1571" height="342" alt="image" src="https://github.com/user-attachments/assets/cdddddb6-147c-4a20-8e8b-a3a3b9c9b115" />
+
 2、新建企业自建应用
 
 路径： 创建应用 → 企业自建应用；基础信息按提示填写即可（名称、描述等），完成创建后进入应用详情页。
 
 路径： 应用能力 → 添加应用能力；添加机器人，完成后点击上方的 创建版本。
+
+<img width="1587" height="772" alt="image" src="https://github.com/user-attachments/assets/065ba871-814e-4506-8a23-10c5ac35656b" />
+
 
 #### 配置飞书机器人应用权限
 
@@ -157,10 +163,15 @@ openclaw 默认不内置飞书 Channel，需要额外安装插件，社区已�
     }
   }
 ```
+<img width="1573" height="537" alt="image" src="https://github.com/user-attachments/assets/7c1ade9c-248b-47db-b3d2-52a10bb9542a" />
+
 
 #### 获取飞书机器人调用密钥
 
 路径：凭证与基础信息 → 应用凭证 ，将机器人的 App ID / App Secret 保存下来等下有用。
+
+<img width="1488" height="364" alt="image" src="https://github.com/user-attachments/assets/3c7c0d99-4136-4f33-a5f9-1ac227e76d38" />
+
 
 #### openclaw 安装飞书插件
 
