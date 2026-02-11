@@ -36,22 +36,27 @@ sk-cp-okxxxxx
 
 ## 3 安装skill文件
 
-把本项目解压到~/.openclaw目录下，结果如图：
+把本项目解压后，内容复制到~/.openclaw目录下，结果如图：
 
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/4EZlweZ8e13BZqxA/img/d6707ad8-eba0-4f6a-9b2c-79c22748dbfc.png)
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/4EZlweZ8e13BZqxA/img/6729372c-71a2-4b1f-825e-9f1703cf0609.png)
 
-配置所需的环境变量：
 
-MODEL_NAME=生成图模型名称，默认值gemini-3-pro-image-preview
-
-FALLBACK_MODEL_NAME=生成图备用模型名称，默认值gemini-2.0-flash-exp-image-generation
+编辑配置文件，更新所需的配置值：
+配置文件路径： 
+```shell
+~/.openclaw/skills/Wechat-Artical/scripts/config.json 
+```
 
 IMAGE_API_BASE_URL=生成图模型的baseUrl
 
-API_KEY=生成图模型的key
+IMAGE_API_KEY=生成图模型的key
+
+IMAGE_MODEL_NAME=生成图模型名称，默认值gemini-3-pro-image-preview
+
+IMAGE_FALLBACK_MODEL_NAME=生成图备用模型名称，默认值gemini-2.0-flash-exp-image-generation
 
 WECHAT_APPID=要发布的微信公众号的appId
 
@@ -62,24 +67,25 @@ WECHAT_AUTHOR=要发布的微信公众号名称
 
 ## 4 通知openclaw安装这个skill
 
-本地gateway跟openclaw通过chat聊天，让它安装这个skill，它会自动安装依赖。
+本地openclaw gateway通过Chat聊天，输入如下内容让它安装这个skill，它会自动安装所需依赖。
 
 ```shell
-安装这个skill ，目录是 ~/.openclaw/skills
+帮我安装skill到本地，所需文件都在~/.openclaw/skills目录下
 ```
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/4EZlweZ8e13BZqxA/img/464e5901-b7f2-4586-bbbb-076dffb04cc5.png)
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/4EZlweZ8e13BZqxA/img/efd1a610-e67a-4746-aa9e-0f371e9bced8.png)
 
-然后就可以让它写公众号了。
+然后就可以通过Chat让它写公众号了。
 
 ![image.png](https://alidocs.oss-cn-zhangjiakou.aliyuncs.com/res/4EZlweZ8e13BZqxA/img/f86a8c0d-f4e8-44df-a89a-fa9fb925de51.png)
 
+
 ## 5 安装飞书插件
 
-
 openclaw 默认不内置飞书 Channel，需要额外安装插件，社区已经有小伙伴实现并开源 项目地址： [https://github.com/m1heng/clawdbot-feishu](https://github.com/m1heng/clawdbot-feishu) 
+
 
 #### 创建飞书机器人
 
