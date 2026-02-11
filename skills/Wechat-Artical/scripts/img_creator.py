@@ -9,16 +9,45 @@ import sys
 import re
 import base64
 import asyncio
+import json
 from pathlib import Path
 from typing import List, Union
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 
-# API 配置（从环境变量读取，如果未设置则使用默认值）
-BASE_URL = os.getenv("IMAGE_API_BASE_URL", "https://xxx.com/v1")
-API_KEY = os.getenv("IMAGE_API_KEY", "sk-xxx")
-MODEL_NAME = os.getenv("IMAGE_MODEL_NAME", "gemini-3-pro-image-preview")
-FALLBACK_MODEL_NAME = os.getenv("IMAGE_FALLBACK_MODEL_NAME", "gemini-2.0-flash-exp-image-generation")
+
+def _load_config():
+    """从同目录下的配置文件读取配置"""
+    config_path = Path(__file__).parent / "config.json"
+    
+    # 默认配置
+    default_config = {
+        "IMAGE_API_BASE_URL": "https://xxx.com/v1",
+        "IMAGE_API_KEY": "sk-xxx",
+        "IMAGE_MODEL_NAME": "gemini-3-pro-image-preview",
+        "IMAGE_FALLBACK_MODEL_NAME": "gemini-2.0-flash-exp-image-generation"
+    }
+    
+    try:
+        if config_path.exists():
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                # 合并配置，确保所有必需的键都存在
+                return {**default_config, **config}
+        else:
+            print(f"警告: 配置文件不存在 - {config_path}，使用默认配置")
+            return default_config
+    except Exception as e:
+        print(f"警告: 读取配置文件失败 - {e}，使用默认配置")
+        return default_config
+
+
+# API 配置（从同目录下的 config.json 文件读取）
+_config = _load_config()
+BASE_URL = _config["IMAGE_API_BASE_URL"]
+API_KEY = _config["IMAGE_API_KEY"]
+MODEL_NAME = _config["IMAGE_MODEL_NAME"]
+FALLBACK_MODEL_NAME = _config["IMAGE_FALLBACK_MODEL_NAME"]
 
 
 def create_cover_image(article_dir: str, cover_text: str = "") -> str:
@@ -65,7 +94,10 @@ async def _create_cover_image_async(article_dir: str, cover_text: str = "") -> s
         output_path = assets_dir / "cover.png"
 
         # 生成图片
-        result = await _generate(prompt, None, str(output_path))
+        try:
+            result = await _generate(prompt, None, str(output_path))
+        except Exception as e:
+            return f"错误: {str(e)}"
 
         if result:
             # 如果没有提供文字，尝试从artical.md提取标题
@@ -261,9 +293,11 @@ async def _generate(prompt: str, images: List[str], output_path: str) -> str:
         (FALLBACK_MODEL_NAME, 45)
     ]
 
+    errors = []
     async with aiohttp.ClientSession() as session:
         for model, timeout in models:
             try:
+                print(f"尝试使用模型: {model} (超时: {timeout}秒)...")
                 data = await _call_api(session, model, content, timeout)
 
                 if "choices" in data and data["choices"]:
@@ -274,13 +308,26 @@ async def _generate(prompt: str, images: List[str], output_path: str) -> str:
                         os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
                         with open(output_path, "wb") as f:
                             f.write(base64.b64decode(img_data))
+                        print(f"✓ 模型 {model} 成功生成图片")
                         return output_path
+                    else:
+                        error_msg = f"模型 {model} 返回的数据中未找到图片"
+                        print(f"✗ {error_msg}")
+                        errors.append(error_msg)
+                else:
+                    error_msg = f"模型 {model} 返回的数据格式异常: {data}"
+                    print(f"✗ {error_msg}")
+                    errors.append(error_msg)
 
             except Exception as e:
-                print(f"模型 {model} 失败: {e}")
+                error_msg = f"模型 {model} 失败: {e}"
+                print(f"✗ {error_msg}")
+                errors.append(error_msg)
                 continue
 
-    return ""
+    # 所有模型都失败，返回详细错误信息
+    error_summary = "\n".join([f"  - {err}" for err in errors])
+    raise Exception(f"所有模型都失败了:\n{error_summary}")
 
 
 def _build_content(prompt: str, images: List[str]):
@@ -343,7 +390,18 @@ async def _call_api(session, model: str, content, timeout: int) -> dict:
         timeout=aiohttp.ClientTimeout(total=timeout)
     ) as resp:
         if resp.status != 200:
-            raise Exception(f"API错误: {resp.status}")
+            # 尝试读取响应体获取详细错误信息
+            try:
+                error_data = await resp.json()
+                error_msg = error_data.get("error", {}).get("message", str(error_data))
+                raise Exception(f"API错误 {resp.status}: {error_msg}")
+            except:
+                # 如果无法解析 JSON，使用状态码和文本
+                try:
+                    error_text = await resp.text()
+                    raise Exception(f"API错误 {resp.status}: {error_text[:200]}")
+                except:
+                    raise Exception(f"API错误: HTTP {resp.status}")
         return await resp.json()
 
 

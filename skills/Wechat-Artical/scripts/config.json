@@ -1,0 +1,10 @@
+{
+  "IMAGE_API_BASE_URL": "https://xxx/v1",
+  "IMAGE_API_KEY": "sk-xxx",
+  "IMAGE_MODEL_NAME": "gemini-3-pro-image-preview",
+  "IMAGE_FALLBACK_MODEL_NAME": "gemini-2.0-flash-exp-image-generation",
+  "WECHAT_APPID": "xxx",
+  "WECHAT_APPSECRET": "xxx",
+  "WECHAT_AUTHOR": "xxx"
+}
+

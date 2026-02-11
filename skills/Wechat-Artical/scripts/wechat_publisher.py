@@ -17,11 +17,38 @@ import json
 import requests
 from pathlib import Path
 
-# ============== 配置（从环境变量读取，如果未设置则使用默认值）==============
+
+def _load_config():
+    """从同目录下的配置文件读取配置"""
+    config_path = Path(__file__).parent / "config.json"
+    
+    # 默认配置
+    default_config = {
+        "WECHAT_APPID": "wxxxxx",
+        "WECHAT_APPSECRET": "0axxxx",
+        "WECHAT_AUTHOR": "xxxx",
+    }
+    
+    try:
+        if config_path.exists():
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                # 合并配置，确保所有必需的键都存在
+                return {**default_config, **config}
+        else:
+            print(f"警告: 配置文件不存在 - {config_path}，使用默认配置")
+            return default_config
+    except Exception as e:
+        print(f"警告: 读取配置文件失败 - {e}，使用默认配置")
+        return default_config
+
+
+# ============== 配置（从同目录下的 config.json 文件读取）==============
+_config = _load_config()
 CONFIG = {
-    "appid": os.getenv("WECHAT_APPID", "wxxxxx"),
-    "appsecret": os.getenv("WECHAT_APPSECRET", "0axxxx"),
-    "author": os.getenv("WECHAT_AUTHOR", "xxxx"),
+    "appid": _config.get("WECHAT_APPID", "wxxxxx"),
+    "appsecret": _config.get("WECHAT_APPSECRET", "0axxxx"),
+    "author": _config.get("WECHAT_AUTHOR", "xxxx"),
 }
 
 # 样式配置
